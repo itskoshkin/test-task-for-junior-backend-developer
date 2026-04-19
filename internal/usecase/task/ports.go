@@ -51,3 +51,32 @@ type UpdateInput struct {
 	Status      taskdomain.Status
 	DueDate     OptionalDatePatch
 }
+
+type TemplateUsecase interface {
+	Create(ctx context.Context, input CreateTemplateInput) (*taskdomain.Template, error)
+	GetByID(ctx context.Context, id int64) (*taskdomain.Template, error)
+	Update(ctx context.Context, id int64, input UpdateTemplateInput) (*taskdomain.Template, error)
+	Delete(ctx context.Context, id int64) error
+	List(ctx context.Context, page ListTemplatesInput) ([]taskdomain.Template, error)
+}
+
+type CreateTemplateInput struct {
+	Title       string
+	Description string
+	Rule        taskdomain.RecurrenceRule
+	StartDate   taskdomain.Date
+	EndDate     *taskdomain.Date
+}
+
+type UpdateTemplateInput struct {
+	Title       string
+	Description string
+	Rule        taskdomain.RecurrenceRule
+	StartDate   taskdomain.Date
+	EndDate     *taskdomain.Date
+}
+
+type ListTemplatesInput struct {
+	Limit  int
+	Offset int
+}

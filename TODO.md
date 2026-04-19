@@ -45,7 +45,7 @@
 
 ### Stage 3. Use case
 
-- [ ] `TemplateService.Create/GetByID/Update/Delete` with rule validation
+- [x] `TemplateService.Create/GetByID/Update/Delete` with rule validation
 - [ ] `TaskService.ListInRange(from, to)`:
   1. Query materialized instances in the window
   2. Generate virtual occurrences for each active template
