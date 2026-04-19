@@ -38,8 +38,8 @@
   - Indexes: `idx_tasks_due_date`, `idx_tasks_template_id`, `idx_templates_active (start_date, end_date)`
   - Unique key `(template_id, due_date) WHERE template_id IS NOT NULL` — so an instance cannot be materialized twice
 - [x] Down migration `0002_add_recurrence.down.sql`
-- [ ] Repository `TaskTemplateRepository`: Create / GetByID / Update / Delete / ListActiveInRange(from; to)
-- [ ] Update `TaskRepository`:
+- [x] Repository `TaskTemplateRepository`: Create / GetByID / Update / Delete / ListActiveInRange(from; to)
+- [x] Update `TaskRepository`:
   - `ListInRange(from, to Date) []Task`
   - `UpsertInstance(templateID, date, status)` — idempotent materialization
 

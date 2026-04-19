@@ -12,6 +12,17 @@ type Repository interface {
 	Update(ctx context.Context, task *taskdomain.Task) (*taskdomain.Task, error)
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context) ([]taskdomain.Task, error)
+	ListInRange(ctx context.Context, from, to taskdomain.Date) ([]taskdomain.Task, error)
+	UpsertInstance(ctx context.Context, task *taskdomain.Task) (*taskdomain.Task, error)
+}
+
+type TemplateRepository interface {
+	Create(ctx context.Context, tpl *taskdomain.Template) (*taskdomain.Template, error)
+	GetByID(ctx context.Context, id int64) (*taskdomain.Template, error)
+	Update(ctx context.Context, tpl *taskdomain.Template) (*taskdomain.Template, error)
+	Delete(ctx context.Context, id int64) error
+	List(ctx context.Context, limit, offset int) ([]taskdomain.Template, error)
+	ListActiveInRange(ctx context.Context, from, to taskdomain.Date) ([]taskdomain.Template, error)
 }
 
 type Usecase interface {
@@ -22,14 +33,21 @@ type Usecase interface {
 	List(ctx context.Context) ([]taskdomain.Task, error)
 }
 
+type OptionalDatePatch struct {
+	Set   bool
+	Value *taskdomain.Date
+}
+
 type CreateInput struct {
 	Title       string
 	Description string
 	Status      taskdomain.Status
+	DueDate     *taskdomain.Date
 }
 
 type UpdateInput struct {
 	Title       string
 	Description string
 	Status      taskdomain.Status
+	DueDate     OptionalDatePatch
 }

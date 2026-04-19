@@ -27,14 +27,17 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*taskdomain.Ta
 		return nil, err
 	}
 
+	now := s.now()
 	model := &taskdomain.Task{
 		Title:       normalized.Title,
 		Description: normalized.Description,
 		Status:      normalized.Status,
+		CreatedAt:   now,
+		UpdatedAt:   now,
 	}
-	now := s.now()
-	model.CreatedAt = now
-	model.UpdatedAt = now
+	if normalized.DueDate != nil {
+		model.DueDate = *normalized.DueDate
+	}
 
 	created, err := s.repo.Create(ctx, model)
 	if err != nil {
@@ -62,11 +65,26 @@ func (s *Service) Update(ctx context.Context, id int64, input UpdateInput) (*tas
 		return nil, err
 	}
 
+	current, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	dueDate := current.DueDate
+	if normalized.DueDate.Set {
+		if normalized.DueDate.Value == nil {
+			dueDate = taskdomain.Date{}
+		} else {
+			dueDate = *normalized.DueDate.Value
+		}
+	}
+
 	model := &taskdomain.Task{
 		ID:          id,
 		Title:       normalized.Title,
 		Description: normalized.Description,
 		Status:      normalized.Status,
+		DueDate:     dueDate,
 		UpdatedAt:   s.now(),
 	}
 

@@ -18,14 +18,22 @@ func New(pool *pgxpool.Pool) *Repository {
 	return &Repository{pool: pool}
 }
 
-func (r *Repository) Create(ctx context.Context, task *taskdomain.Task) (*taskdomain.Task, error) {
-	const query = `
-		INSERT INTO tasks (title, description, status, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5)
-		RETURNING id, title, description, status, created_at, updated_at
-	`
+const taskColumns = `id, template_id, title, description, status, due_date, created_at, updated_at`
 
-	row := r.pool.QueryRow(ctx, query, task.Title, task.Description, task.Status, task.CreatedAt, task.UpdatedAt)
+func (r *Repository) Create(ctx context.Context, task *taskdomain.Task) (*taskdomain.Task, error) {
+	const query = `INSERT INTO tasks (template_id, title, description, status, due_date, created_at, updated_at)
+					VALUES ($1, $2, $3, $4, $5, $6, $7)
+					RETURNING ` + taskColumns
+
+	row := r.pool.QueryRow(ctx, query,
+		task.TemplateID,
+		task.Title,
+		task.Description,
+		task.Status,
+		task.DueDate,
+		task.CreatedAt,
+		task.UpdatedAt,
+	)
 	created, err := scanTask(row)
 	if err != nil {
 		return nil, err
@@ -35,11 +43,7 @@ func (r *Repository) Create(ctx context.Context, task *taskdomain.Task) (*taskdo
 }
 
 func (r *Repository) GetByID(ctx context.Context, id int64) (*taskdomain.Task, error) {
-	const query = `
-		SELECT id, title, description, status, created_at, updated_at
-		FROM tasks
-		WHERE id = $1
-	`
+	const query = `SELECT ` + taskColumns + ` FROM tasks WHERE id = $1`
 
 	row := r.pool.QueryRow(ctx, query, id)
 	found, err := scanTask(row)
@@ -55,17 +59,16 @@ func (r *Repository) GetByID(ctx context.Context, id int64) (*taskdomain.Task, e
 }
 
 func (r *Repository) Update(ctx context.Context, task *taskdomain.Task) (*taskdomain.Task, error) {
-	const query = `
-		UPDATE tasks
-		SET title = $1,
-			description = $2,
-			status = $3,
-			updated_at = $4
-		WHERE id = $5
-		RETURNING id, title, description, status, created_at, updated_at
-	`
+	const query = `UPDATE tasks
+					SET title = $1,
+						description = $2,
+						status = $3,
+						due_date = $4,
+						updated_at = $5
+					WHERE id = $6
+					RETURNING ` + taskColumns
 
-	row := r.pool.QueryRow(ctx, query, task.Title, task.Description, task.Status, task.UpdatedAt, task.ID)
+	row := r.pool.QueryRow(ctx, query, task.Title, task.Description, task.Status, task.DueDate, task.UpdatedAt, task.ID)
 	updated, err := scanTask(row)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -94,13 +97,43 @@ func (r *Repository) Delete(ctx context.Context, id int64) error {
 }
 
 func (r *Repository) List(ctx context.Context) ([]taskdomain.Task, error) {
-	const query = `
-		SELECT id, title, description, status, created_at, updated_at
-		FROM tasks
-		ORDER BY id DESC
-	`
+	const query = `SELECT ` + taskColumns + ` FROM tasks ORDER BY id DESC`
 
-	rows, err := r.pool.Query(ctx, query)
+	return r.queryTasks(ctx, query)
+}
+
+func (r *Repository) ListInRange(ctx context.Context, from, to taskdomain.Date) ([]taskdomain.Task, error) {
+	const query = `SELECT ` + taskColumns + ` FROM tasks WHERE due_date IS NOT NULL AND due_date BETWEEN $1 AND $2 ORDER BY due_date ASC, id ASC`
+
+	return r.queryTasks(ctx, query, from, to)
+}
+
+func (r *Repository) UpsertInstance(ctx context.Context, task *taskdomain.Task) (*taskdomain.Task, error) {
+	const query = `INSERT INTO tasks (template_id, title, description, status, due_date, created_at, updated_at)
+					VALUES ($1, $2, $3, $4, $5, $6, $7)
+					ON CONFLICT (template_id, due_date) WHERE template_id IS NOT NULL
+					DO UPDATE SET
+						status = EXCLUDED.status,
+						title = EXCLUDED.title,
+						description = EXCLUDED.description,
+						updated_at = EXCLUDED.updated_at
+					RETURNING ` + taskColumns
+
+	row := r.pool.QueryRow(ctx, query,
+		task.TemplateID,
+		task.Title,
+		task.Description,
+		task.Status,
+		task.DueDate,
+		task.CreatedAt,
+		task.UpdatedAt,
+	)
+
+	return scanTask(row)
+}
+
+func (r *Repository) queryTasks(ctx context.Context, query string, args ...any) ([]taskdomain.Task, error) {
+	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +141,8 @@ func (r *Repository) List(ctx context.Context) ([]taskdomain.Task, error) {
 
 	tasks := make([]taskdomain.Task, 0)
 	for rows.Next() {
-		task, err := scanTask(rows)
+		var task *taskdomain.Task
+		task, err = scanTask(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -116,7 +150,7 @@ func (r *Repository) List(ctx context.Context) ([]taskdomain.Task, error) {
 		tasks = append(tasks, *task)
 	}
 
-	if err := rows.Err(); err != nil {
+	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 
@@ -135,9 +169,11 @@ func scanTask(scanner taskScanner) (*taskdomain.Task, error) {
 
 	if err := scanner.Scan(
 		&task.ID,
+		&task.TemplateID,
 		&task.Title,
 		&task.Description,
 		&status,
+		&task.DueDate,
 		&task.CreatedAt,
 		&task.UpdatedAt,
 	); err != nil {
