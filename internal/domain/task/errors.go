@@ -1,5 +1,10 @@
 package task
 
-import "errors"
+import (
+	"errors"
+)
 
-var ErrNotFound = errors.New("task not found")
+var (
+	ErrNotFound    = errors.New("task not found")
+	ErrInvalidRule = errors.New("invalid recurrence rule")
+)

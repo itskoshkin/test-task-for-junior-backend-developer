@@ -10,13 +10,13 @@
 
 ### Stage 1. Domain
 
-- [ ] Value object `RecurrenceRule` (interface or sealed-like discriminated type):
+- [x] Value object `RecurrenceRule` (interface or sealed-like discriminated type):
   - `Daily{EveryN int}` — every Nth day (N ≥ 1)
   - `Monthly{DaysOfMonth []int}` — days from 1 to 30 (31 is not allowed; for the end of month use `LastDayOfMonth`)
   - `SpecificDates{Dates []Date}` — explicit list
   - `WeekdayParity{Parity enum{even,odd}}` — based on the parity of the day number in the month
   - `LastDayOfMonth{}` — triggers on the last day of each month (28/29/30/31 depending on the month and leap year)
-- [ ] `Rule.Validate() error`
+- [x] `Rule.Validate() error`
 - [ ] `Rule.Occurrences(from, to Date) []Date` — all rule dates within the window (inclusive)
 - [ ] Entity `TaskTemplate{ID, Title, Description, Rule, StartDate, EndDate *Date, CreatedAt, UpdatedAt}`
 - [ ] Extend `Task`: `TemplateID *int64`, `DueDate Date` (required)
