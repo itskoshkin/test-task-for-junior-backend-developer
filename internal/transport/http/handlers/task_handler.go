@@ -21,7 +21,7 @@ func NewTaskHandler(usecase taskusecase.Usecase) *TaskHandler {
 }
 
 func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
-	var req taskMutationDTO
+	var req createTaskDTO
 	if err := decodeJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -31,6 +31,7 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Title:       req.Title,
 		Description: req.Description,
 		Status:      req.Status,
+		DueDate:     req.DueDate,
 	})
 	if err != nil {
 		writeUsecaseError(w, err)
@@ -63,7 +64,7 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req taskMutationDTO
+	var req updateTaskDTO
 	if err := decodeJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -73,6 +74,10 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 		Title:       req.Title,
 		Description: req.Description,
 		Status:      req.Status,
+		DueDate: taskusecase.OptionalDatePatch{
+			Set:   req.DueDate.Set,
+			Value: req.DueDate.Value,
+		},
 	})
 	if err != nil {
 		writeUsecaseError(w, err)
