@@ -32,12 +32,12 @@
 
 ### Stage 2. Persistence
 
-- [ ] Migration `0002_add_recurrence.up.sql`:
+- [x] Migration `0002_add_recurrence.up.sql`:
   - Table `task_templates (id BIGSERIAL, title, description, rule_type TEXT, rule_params JSONB, start_date DATE, end_date DATE NULL, created_at, updated_at)`
-  - In `tasks`: add `template_id BIGINT REFERENCES task_templates(id) ON DELETE CASCADE NULL`, `due_date DATE NOT NULL`
+  - In `tasks`: add `template_id BIGINT REFERENCES task_templates(id) ON DELETE CASCADE NULL`, `due_date DATE NULL`
   - Indexes: `idx_tasks_due_date`, `idx_tasks_template_id`, `idx_templates_active (start_date, end_date)`
   - Unique key `(template_id, due_date) WHERE template_id IS NOT NULL` — so an instance cannot be materialized twice
-- [ ] Down migration `0002_add_recurrence.down.sql`
+- [x] Down migration `0002_add_recurrence.down.sql`
 - [ ] Repository `TaskTemplateRepository`: Create / GetByID / Update / Delete / ListActiveInRange(from; to)
 - [ ] Update `TaskRepository`:
   - `ListInRange(from, to Date) []Task`
