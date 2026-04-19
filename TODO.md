@@ -18,8 +18,8 @@
   - `LastDayOfMonth{}` — triggers on the last day of each month (28/29/30/31 depending on the month and leap year)
 - [x] `Rule.Validate() error`
 - [x] `Rule.Occurrences(from, to Date) []Date` — all rule dates within the window (inclusive)
-- [ ] Entity `TaskTemplate{ID, Title, Description, Rule, StartDate, EndDate *Date, CreatedAt, UpdatedAt}`
-- [ ] Extend `Task`: `TemplateID *int64`, `DueDate Date` (required)
+- [x] Entity `TaskTemplate{ID, Title, Description, Rule, StartDate, EndDate *Date, CreatedAt, UpdatedAt}`
+- [x] Extend `Task`: `TemplateID *int64`, `DueDate Date` (required)
 - [x] Generator tests (table-driven):
   - [x] `Monthly` with day 29 or 30 in a February that doesn't have that day — skip, do not shift
   - [x] `LastDayOfMonth`: February non-leap → 28, February leap → 29, April → 30, January → 31
