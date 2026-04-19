@@ -17,18 +17,18 @@
   - `WeekdayParity{Parity enum{even,odd}}` — based on the parity of the day number in the month
   - `LastDayOfMonth{}` — triggers on the last day of each month (28/29/30/31 depending on the month and leap year)
 - [x] `Rule.Validate() error`
-- [ ] `Rule.Occurrences(from, to Date) []Date` — all rule dates within the window (inclusive)
+- [x] `Rule.Occurrences(from, to Date) []Date` — all rule dates within the window (inclusive)
 - [ ] Entity `TaskTemplate{ID, Title, Description, Rule, StartDate, EndDate *Date, CreatedAt, UpdatedAt}`
 - [ ] Extend `Task`: `TemplateID *int64`, `DueDate Date` (required)
-- [ ] Generator tests (table-driven):
-  - `Monthly` with day 29 or 30 in a February that doesn't have that day — skip, do not shift
-  - `LastDayOfMonth`: February non-leap → 28, February leap → 29, April → 30, January → 31
-  - Leap year (29.02 is reachable via `SpecificDates` / `Monthly{29}`)
-  - `EveryN=1`, `EveryN=7`
-  - Even/odd parity, including the 31st (31 falls under odd parity, not under even)
-  - Empty `SpecificDates` list — validation error
-  - `EndDate < StartDate` — validation error
-  - `EndDate = nil` — infinite rule, returns the entire window range
+- [x] Generator tests (table-driven):
+  - [x] `Monthly` with day 29 or 30 in a February that doesn't have that day — skip, do not shift
+  - [x] `LastDayOfMonth`: February non-leap → 28, February leap → 29, April → 30, January → 31
+  - [x] Leap year (29.02 is reachable via `SpecificDates` / `Monthly{29}`)
+  - [x] `EveryN=1`, `EveryN=7`
+  - [x] Even/odd parity, including the 31st (31 falls under odd parity, not under even)
+  - [x] Empty `SpecificDates` list — validation error
+  - [x] `EndDate < StartDate` — validation error
+  - [x] `EndDate = nil` — infinite rule, returns the entire window range
 
 ### Stage 2. Persistence
 

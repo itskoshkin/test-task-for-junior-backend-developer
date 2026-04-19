@@ -2,6 +2,8 @@ package task
 
 import (
 	"fmt"
+	"slices"
+	"time"
 )
 
 type RecurrenceType string
@@ -17,6 +19,7 @@ const (
 type RecurrenceRule interface {
 	Type() RecurrenceType
 	Validate() error
+	Occurrences(anchor, from, to Date) []Date
 }
 
 type DailyRule struct {
@@ -31,6 +34,33 @@ func (r DailyRule) Validate() error {
 	}
 
 	return nil
+}
+
+func (r DailyRule) Occurrences(anchor, from, to Date) []Date {
+	if from.After(to) {
+		return nil
+	}
+
+	start := anchor
+	if start.Before(from) {
+		diff := daysInBetween(anchor, from)
+		k := diff / r.EveryN
+		if diff%r.EveryN != 0 {
+			k++
+		}
+		start = anchor.AddDays(k * r.EveryN)
+	}
+
+	if start.After(to) {
+		return nil
+	}
+
+	var out []Date
+	for d := start; !d.After(to); d = d.AddDays(r.EveryN) {
+		out = append(out, d)
+	}
+
+	return out
 }
 
 type MonthlyRule struct {
@@ -58,6 +88,40 @@ func (r MonthlyRule) Validate() error {
 	return nil
 }
 
+func (r MonthlyRule) Occurrences(_, from, to Date) []Date {
+	if from.After(to) {
+		return nil
+	}
+
+	days := append([]int(nil), r.DaysOfMonth...)
+	slices.Sort(days)
+
+	var out []Date
+	y, m := from.Year, from.Month
+	for {
+		last := daysInMonth(y, m)
+		for _, dom := range days {
+			if dom > last {
+				continue
+			}
+			d := NewDate(y, m, dom)
+			if d.Before(from) {
+				continue
+			}
+			if d.After(to) {
+				return out
+			}
+			out = append(out, d)
+		}
+
+		m++
+		if m > time.December {
+			m = time.January
+			y++
+		}
+	}
+}
+
 type SpecificDatesRule struct {
 	Dates []Date
 }
@@ -81,6 +145,37 @@ func (r SpecificDatesRule) Validate() error {
 	}
 
 	return nil
+}
+
+func (r SpecificDatesRule) Occurrences(_, from, to Date) []Date {
+	if from.After(to) {
+		return nil
+	}
+
+	dates := append([]Date(nil), r.Dates...)
+	slices.SortFunc(dates, func(a, b Date) int {
+		switch {
+		case a.Before(b):
+			return -1
+		case a.After(b):
+			return 1
+		default:
+			return 0
+		}
+	})
+
+	var out []Date
+	for _, d := range dates {
+		if d.Before(from) {
+			continue
+		}
+		if d.After(to) {
+			break
+		}
+		out = append(out, d)
+	}
+
+	return out
 }
 
 type Parity string
@@ -107,8 +202,57 @@ func (r MonthdayParityRule) Validate() error {
 	}
 }
 
+func (r MonthdayParityRule) Occurrences(_, from, to Date) []Date {
+	if from.After(to) {
+		return nil
+	}
+
+	wantEven := r.Parity == ParityEven
+
+	var out []Date
+	for d := from; !d.After(to); d = d.AddDays(1) {
+		if (d.Day%2 == 0) == wantEven {
+			out = append(out, d)
+		}
+	}
+
+	return out
+}
+
 type LastDayOfMonthRule struct{}
 
 func (LastDayOfMonthRule) Type() RecurrenceType { return RecurrenceLastDayOfMonth }
 
 func (LastDayOfMonthRule) Validate() error { return nil }
+
+func (LastDayOfMonthRule) Occurrences(_, from, to Date) []Date {
+	if from.After(to) {
+		return nil
+	}
+
+	var out []Date
+	y, m := from.Year, from.Month
+	for {
+		d := NewDate(y, m, daysInMonth(y, m))
+		if !d.Before(from) {
+			if d.After(to) {
+				return out
+			}
+			out = append(out, d)
+		}
+
+		m++
+		if m > time.December {
+			m = time.January
+			y++
+		}
+	}
+}
+
+func daysInMonth(year int, month time.Month) int {
+	return time.Date(year, month+1, 0, 0, 0, 0, 0, time.UTC).Day()
+}
+
+func daysInBetween(from, to Date) int {
+	return int(to.Time().Sub(from.Time()) / (24 * time.Hour))
+}
