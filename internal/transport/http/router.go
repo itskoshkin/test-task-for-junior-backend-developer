@@ -24,6 +24,7 @@ func NewRouter(
 
 	api.HandleFunc("/tasks", taskHandler.Create).Methods(http.MethodPost)
 	api.HandleFunc("/tasks", taskHandler.List).Methods(http.MethodGet)
+	api.HandleFunc("/tasks/status", taskHandler.UpdateStatus).Methods(http.MethodPatch)
 	api.HandleFunc("/tasks/{id:[0-9]+}", taskHandler.GetByID).Methods(http.MethodGet)
 	api.HandleFunc("/tasks/{id:[0-9]+}", taskHandler.Update).Methods(http.MethodPut)
 	api.HandleFunc("/tasks/{id:[0-9]+}", taskHandler.Delete).Methods(http.MethodDelete)

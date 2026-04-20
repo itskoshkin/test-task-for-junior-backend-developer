@@ -40,7 +40,7 @@ func (h *TemplateHandler) Create(w http.ResponseWriter, r *http.Request) {
 		EndDate:     req.EndDate,
 	})
 	if err != nil {
-		writeUsecaseError(w, err)
+		writeUseCaseError(w, err)
 		return
 	}
 
@@ -56,7 +56,7 @@ func (h *TemplateHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	tpl, err := h.useCase.GetByID(r.Context(), id)
 	if err != nil {
-		writeUsecaseError(w, err)
+		writeUseCaseError(w, err)
 		return
 	}
 
@@ -90,7 +90,7 @@ func (h *TemplateHandler) Update(w http.ResponseWriter, r *http.Request) {
 		EndDate:     req.EndDate,
 	})
 	if err != nil {
-		writeUsecaseError(w, err)
+		writeUseCaseError(w, err)
 		return
 	}
 
@@ -105,7 +105,7 @@ func (h *TemplateHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = h.useCase.Delete(r.Context(), id); err != nil {
-		writeUsecaseError(w, err)
+		writeUseCaseError(w, err)
 		return
 	}
 
@@ -124,7 +124,7 @@ func (h *TemplateHandler) List(w http.ResponseWriter, r *http.Request) {
 		Offset: offset,
 	})
 	if err != nil {
-		writeUsecaseError(w, err)
+		writeUseCaseError(w, err)
 		return
 	}
 

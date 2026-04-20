@@ -59,7 +59,7 @@
 - [x] Resource `/api/v1/task-templates`:
   - `POST` — create template
   - `GET /{id}` / `PUT /{id}` / `DELETE /{id}`
-- [ ] `/api/v1/tasks`:
+- [x] `/api/v1/tasks`:
   - `POST` — one-off task (`due_date` required, `template_id = NULL`)
   - `GET /?from=YYYY-MM-DD&to=YYYY-MM-DD` — window instances (materialized + virtual)
   - `PATCH /status` — for both materialized tasks (`id`) and virtual occurrences (`template_id` + `due_date`)

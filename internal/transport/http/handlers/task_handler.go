@@ -13,11 +13,11 @@ import (
 )
 
 type TaskHandler struct {
-	usecase taskusecase.Usecase
+	useCase taskusecase.Usecase
 }
 
-func NewTaskHandler(usecase taskusecase.Usecase) *TaskHandler {
-	return &TaskHandler{usecase: usecase}
+func NewTaskHandler(useCase taskusecase.Usecase) *TaskHandler {
+	return &TaskHandler{useCase: useCase}
 }
 
 func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -27,14 +27,14 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	created, err := h.usecase.Create(r.Context(), taskusecase.CreateInput{
+	created, err := h.useCase.Create(r.Context(), taskusecase.CreateInput{
 		Title:       req.Title,
 		Description: req.Description,
 		Status:      req.Status,
 		DueDate:     req.DueDate,
 	})
 	if err != nil {
-		writeUsecaseError(w, err)
+		writeUseCaseError(w, err)
 		return
 	}
 
@@ -48,9 +48,9 @@ func (h *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, err := h.usecase.GetByID(r.Context(), id)
+	task, err := h.useCase.GetByID(r.Context(), id)
 	if err != nil {
-		writeUsecaseError(w, err)
+		writeUseCaseError(w, err)
 		return
 	}
 
@@ -70,7 +70,7 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updated, err := h.usecase.Update(r.Context(), id, taskusecase.UpdateInput{
+	updated, err := h.useCase.Update(r.Context(), id, taskusecase.UpdateInput{
 		Title:       req.Title,
 		Description: req.Description,
 		Status:      req.Status,
@@ -80,7 +80,7 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 	if err != nil {
-		writeUsecaseError(w, err)
+		writeUseCaseError(w, err)
 		return
 	}
 
@@ -94,8 +94,8 @@ func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.usecase.Delete(r.Context(), id); err != nil {
-		writeUsecaseError(w, err)
+	if err = h.useCase.Delete(r.Context(), id); err != nil {
+		writeUseCaseError(w, err)
 		return
 	}
 
@@ -103,9 +103,36 @@ func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
-	tasks, err := h.usecase.List(r.Context())
+	q := r.URL.Query()
+	fromStr, toStr := q.Get("from"), q.Get("to")
+
+	var (
+		tasks []taskdomain.Task
+		err   error
+	)
+
+	switch {
+	case fromStr == "" && toStr == "":
+		tasks, err = h.useCase.List(r.Context())
+	case fromStr != "" && toStr != "":
+		from, parseErr := taskdomain.ParseDate(fromStr)
+		if parseErr != nil {
+			writeError(w, http.StatusBadRequest, errors.New("invalid from"))
+			return
+		}
+		to, parseErr := taskdomain.ParseDate(toStr)
+		if parseErr != nil {
+			writeError(w, http.StatusBadRequest, errors.New("invalid to"))
+			return
+		}
+		tasks, err = h.useCase.ListInRange(r.Context(), from, to)
+	default:
+		writeError(w, http.StatusBadRequest, errors.New("from and to must be provided together"))
+		return
+	}
+
 	if err != nil {
-		writeUsecaseError(w, err)
+		writeUseCaseError(w, err)
 		return
 	}
 
@@ -115,6 +142,33 @@ func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, response)
+}
+
+func (h *TaskHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
+	var req updateStatusDTO
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	input := taskusecase.UpdateOccurrenceStatusInput{Status: req.Status}
+	if req.ID != nil {
+		input.ID = *req.ID
+	}
+	if req.TemplateID != nil {
+		input.TemplateID = *req.TemplateID
+	}
+	if req.DueDate != nil {
+		input.DueDate = *req.DueDate
+	}
+
+	updated, err := h.useCase.UpdateOccurrenceStatus(r.Context(), input)
+	if err != nil {
+		writeUseCaseError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, newTaskDTO(updated))
 }
 
 func getIDFromRequest(r *http.Request) (int64, error) {
@@ -146,7 +200,7 @@ func decodeJSON(r *http.Request, dst any) error {
 	return nil
 }
 
-func writeUsecaseError(w http.ResponseWriter, err error) {
+func writeUseCaseError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, taskdomain.ErrNotFound):
 		writeError(w, http.StatusNotFound, err)
