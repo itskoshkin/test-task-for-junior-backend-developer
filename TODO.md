@@ -46,12 +46,12 @@
 ### Stage 3. Use case
 
 - [x] `TemplateService.Create/GetByID/Update/Delete` with rule validation
-- [ ] `TaskService.ListInRange(from, to)`:
+- [x] `TaskService.ListInRange(from, to)`:
   1. Query materialized instances in the window
   2. Generate virtual occurrences for each active template
   3. Merge: a materialized instance always has priority over a virtual one on the same date
 - [ ] `TaskService.UpdateOccurrenceStatus(templateID, date, status)` — materializes if not yet materialized
-- [ ] Request window validation (max 366 days, `from <= to`)
+- [x] Request window validation (max 366 days, `from <= to`)
 
 ### Stage 4. Transport
 

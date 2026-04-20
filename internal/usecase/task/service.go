@@ -3,6 +3,7 @@ package task
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -10,14 +11,16 @@ import (
 )
 
 type Service struct {
-	repo Repository
-	now  func() time.Time
+	repo      Repository
+	templates TemplateRepository
+	now       func() time.Time
 }
 
-func NewService(repo Repository) *Service {
+func NewService(repo Repository, templates TemplateRepository) *Service {
 	return &Service{
-		repo: repo,
-		now:  func() time.Time { return time.Now().UTC() },
+		repo:      repo,
+		templates: templates,
+		now:       func() time.Time { return time.Now().UTC() },
 	}
 }
 
@@ -106,6 +109,90 @@ func (s *Service) Delete(ctx context.Context, id int64) error {
 
 func (s *Service) List(ctx context.Context) ([]taskdomain.Task, error) {
 	return s.repo.List(ctx)
+}
+
+func (s *Service) ListInRange(ctx context.Context, from, to taskdomain.Date) ([]taskdomain.Task, error) {
+	if from.IsZero() || to.IsZero() {
+		return nil, fmt.Errorf("%w: from and to are required", ErrInvalidInput)
+	}
+	if from.After(to) {
+		return nil, fmt.Errorf("%w: from must be <= to", ErrInvalidInput)
+	}
+
+	materialized, err := s.repo.ListInRange(ctx, from, to)
+	if err != nil {
+		return nil, err
+	}
+
+	templates, err := s.templates.ListActiveInRange(ctx, from, to)
+	if err != nil {
+		return nil, err
+	}
+
+	return mergeOccurrences(materialized, templates, from, to), nil
+}
+
+type occurrenceKey struct {
+	templateID int64
+	dueDate    taskdomain.Date
+}
+
+func mergeOccurrences(
+	materialized []taskdomain.Task,
+	templates []taskdomain.Template,
+	from, to taskdomain.Date,
+) []taskdomain.Task {
+	seen := make(map[occurrenceKey]struct{}, len(materialized))
+	for _, t := range materialized {
+		if t.TemplateID != nil {
+			seen[occurrenceKey{*t.TemplateID, t.DueDate}] = struct{}{}
+		}
+	}
+
+	out := make([]taskdomain.Task, 0, len(materialized))
+	out = append(out, materialized...)
+
+	for _, tpl := range templates {
+		windowFrom := from
+		if tpl.StartDate.After(windowFrom) {
+			windowFrom = tpl.StartDate
+		}
+		windowTo := to
+		if tpl.EndDate != nil && tpl.EndDate.Before(windowTo) {
+			windowTo = *tpl.EndDate
+		}
+		if windowFrom.After(windowTo) {
+			continue
+		}
+
+		occurrences := tpl.Rule.Occurrences(tpl.StartDate, windowFrom, windowTo)
+		for _, occ := range occurrences {
+			if _, ok := seen[occurrenceKey{tpl.ID, occ}]; ok {
+				continue
+			}
+			out = append(out, virtualOccurrence(tpl, occ))
+		}
+	}
+
+	sort.SliceStable(out, func(i, j int) bool {
+		if out[i].DueDate.Equal(out[j].DueDate) {
+			return out[i].ID < out[j].ID
+		}
+		return out[i].DueDate.Before(out[j].DueDate)
+	})
+
+	return out
+}
+
+func virtualOccurrence(tpl taskdomain.Template, due taskdomain.Date) taskdomain.Task {
+	id := tpl.ID
+	return taskdomain.Task{
+		TemplateID:  &id,
+		Title:       tpl.Title,
+		Description: tpl.Description,
+		Status:      taskdomain.StatusNew,
+		DueDate:     due,
+	}
 }
 
 func validateCreateInput(input CreateInput) (CreateInput, error) {

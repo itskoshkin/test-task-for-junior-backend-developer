@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -19,9 +20,7 @@ import (
 )
 
 func main() {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	}))
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
 	cfg := loadConfig()
 
@@ -36,8 +35,9 @@ func main() {
 	defer pool.Close()
 
 	taskRepo := postgresrepo.New(pool)
-	taskUsecase := task.NewService(taskRepo)
-	taskHandler := httphandlers.NewTaskHandler(taskUsecase)
+	templateRepo := postgresrepo.NewTemplateRepository(pool)
+	taskUseCase := task.NewService(taskRepo, templateRepo)
+	taskHandler := httphandlers.NewTaskHandler(taskUseCase)
 	docsHandler := swaggerdocs.NewHandler()
 	router := transporthttp.NewRouter(taskHandler, docsHandler)
 
@@ -53,14 +53,14 @@ func main() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		if err := server.Shutdown(shutdownCtx); err != nil {
+		if err = server.Shutdown(shutdownCtx); err != nil {
 			logger.Error("shutdown http server", "error", err)
 		}
 	}()
 
 	logger.Info("http server started", "addr", cfg.HTTPAddr)
 
-	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+	if err = server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) { // err != http.ErrServerClosed — Comparison with errors using equality operators fails on wrapped errors
 		logger.Error("listen and serve", "error", err)
 		os.Exit(1)
 	}

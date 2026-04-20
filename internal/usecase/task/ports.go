@@ -31,6 +31,7 @@ type Usecase interface {
 	Update(ctx context.Context, id int64, input UpdateInput) (*taskdomain.Task, error)
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context) ([]taskdomain.Task, error)
+	ListInRange(ctx context.Context, from, to taskdomain.Date) ([]taskdomain.Task, error)
 }
 
 type OptionalDatePatch struct {
