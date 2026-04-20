@@ -1,5 +1,7 @@
 package task
 
-import "errors"
+import (
+	"errors"
+)
 
 var ErrInvalidInput = errors.New("invalid task input")

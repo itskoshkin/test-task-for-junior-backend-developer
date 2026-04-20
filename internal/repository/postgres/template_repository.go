@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 
 	"github.com/jackc/pgx/v5"
@@ -28,8 +27,7 @@ func (r *TemplateRepository) Create(ctx context.Context, tpl *taskdomain.Templat
 	}
 
 	const query = `INSERT INTO task_templates (title, description, rule_type, rule_params, start_date, end_date, created_at, updated_at)
-					VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-					RETURNING ` + templateColumns
+					VALUES ($1, $2, $3, $4, $5, $6, $7, $8)` + ` RETURNING ` + templateColumns
 
 	row := r.pool.QueryRow(ctx, query,
 		tpl.Title,
@@ -75,8 +73,7 @@ func (r *TemplateRepository) Update(ctx context.Context, tpl *taskdomain.Templat
 						start_date = $5,
 						end_date = $6,
 						updated_at = $7
-					WHERE id = $8
-					RETURNING ` + templateColumns
+					WHERE id = $8` + ` RETURNING ` + templateColumns
 
 	row := r.pool.QueryRow(ctx, query,
 		tpl.Title,
@@ -117,7 +114,7 @@ func (r *TemplateRepository) Delete(ctx context.Context, id int64) error {
 }
 
 func (r *TemplateRepository) List(ctx context.Context, limit, offset int) ([]taskdomain.Template, error) {
-	const query = `SELECT ` + templateColumns + `FROM task_templates ORDER BY id DESC LIMIT $1 OFFSET $2`
+	const query = `SELECT ` + templateColumns + ` FROM task_templates ORDER BY id DESC LIMIT $1 OFFSET $2`
 
 	return r.queryTemplates(ctx, query, limit, offset)
 }
@@ -174,7 +171,7 @@ func scanTemplate(scanner taskScanner) (*taskdomain.Template, error) {
 		return nil, err
 	}
 
-	rule, err := taskdomain.DecodeRule(taskdomain.RecurrenceType(ruleType), json.RawMessage(ruleParams))
+	rule, err := taskdomain.DecodeRule(taskdomain.RecurrenceType(ruleType), ruleParams)
 	if err != nil {
 		return nil, err
 	}
