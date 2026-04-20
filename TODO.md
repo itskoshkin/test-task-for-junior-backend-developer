@@ -19,7 +19,7 @@
 - [x] `Rule.Validate() error`
 - [x] `Rule.Occurrences(from, to Date) []Date` — all rule dates within the window (inclusive)
 - [x] Entity `TaskTemplate{ID, Title, Description, Rule, StartDate, EndDate *Date, CreatedAt, UpdatedAt}`
-- [x] Extend `Task`: `TemplateID *int64`, `DueDate Date` (required)
+- [x] Extend `Task`: `TemplateID *int64`, `DueDate Date` (optional for standalone tasks, required for template instances)
 - [x] Generator tests (table-driven):
   - [x] `Monthly` with day 29 or 30 in a February that doesn't have that day — skip, do not shift
   - [x] `LastDayOfMonth`: February non-leap → 28, February leap → 29, April → 30, January → 31
@@ -60,7 +60,7 @@
   - `POST` — create template
   - `GET /{id}` / `PUT /{id}` / `DELETE /{id}`
 - [x] `/api/v1/tasks`:
-  - `POST` — one-off task (`due_date` required, `template_id = NULL`)
+  - `POST` — one-off task (`due_date` optional, `template_id = NULL`)
   - `GET /?from=YYYY-MM-DD&to=YYYY-MM-DD` — window instances (materialized + virtual)
   - `PATCH /status` — for both materialized tasks (`id`) and virtual occurrences (`template_id` + `due_date`)
 - [x] Update `internal/transport/http/docs/openapi.json`
@@ -75,18 +75,12 @@
 
 ### Stage 6. Documentation
 
-- [ ] README.md — section “Assumptions and Decisions”:
+- [x] README.md — section “Assumptions and Decisions”:
   - Why template+instances, why not RRULE
   - Timezone, interpretation of a day
   - `Monthly` days 29/30 in months that don't have them — skipped, not shifted; for the end of month use `LastDayOfMonth`
   - Parity is based on the numeric day of the month (31 is odd)
   - `end_date` is inclusive and may be `null` (infinite rule)
   - Deleting a template cascades to delete materialized instances
-- [ ] README.md — curl examples for the new flow
+- [x] README.md — curl examples for the new flow
 - [x] Swagger up to date
-
-## Open Questions
-
-- [ ] `assignee_id` for a template — current `Task` does not have it. Should it be added as part of this assignment? Probably not: the task is about recurrence, not assignment.
-- [x] List pagination — keep the `from/to` window without `limit/offset`. If the window is too large, cut it off server-side (`maxspan` 366 days).
-- [ ] “Edit the whole series / only this occurrence” — in v1, do the basic version: editing the template affects future virtual occurrences; editing a materialized instance affects only that one.
