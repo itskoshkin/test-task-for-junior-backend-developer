@@ -164,6 +164,7 @@ func mergeOccurrences(
 	templates []taskdomain.Template,
 	from, to taskdomain.Date,
 ) []taskdomain.Task {
+	// A materialized row wins over its virtual counterpart: if (template_id, due_date) already exists in the DB, skip generating a virtual occurrence for that slot.
 	seen := make(map[occurrenceKey]struct{}, len(materialized))
 	for _, t := range materialized {
 		if t.TemplateID != nil {
@@ -206,6 +207,7 @@ func mergeOccurrences(
 	return out
 }
 
+// UpdateOccurrenceStatus has two callers: the UI showing a materialized row (passes id) and the UI flipping a still-virtual occurrence (passes template_id + due_date, which triggers lazy materialization via UpsertInstance)
 func (s *Service) UpdateOccurrenceStatus(ctx context.Context, input UpdateOccurrenceStatusInput) (*taskdomain.Task, error) {
 	if !input.Status.Valid() {
 		return nil, fmt.Errorf("%w: invalid status", ErrInvalidInput)
@@ -250,6 +252,7 @@ func occurrenceMatchesTemplate(tpl *taskdomain.Template, due taskdomain.Date) bo
 		return false
 	}
 
+	// Probe with a single-day window instead of adding a Contains method to the rule
 	for _, d := range tpl.Rule.Occurrences(tpl.StartDate, due, due) {
 		if d.Equal(due) {
 			return true

@@ -21,6 +21,7 @@ type monthdayParityParams struct {
 	Parity Parity `json:"parity"`
 }
 
+// EncodeRule / DecodeRule split a RecurrenceRule into (type, params) to mirror the rule_type TEXT + rule_params JSONB columns — the discriminator stays indexable and filterable, while per-type shapes live untyped in JSONB
 func EncodeRule(rule RecurrenceRule) (RecurrenceType, json.RawMessage, error) {
 	var payload any
 

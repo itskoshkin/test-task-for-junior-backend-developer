@@ -9,6 +9,8 @@ import (
 
 const dateLayout = "2006-01-02"
 
+// Date is a calendar day without a time-of-day or timezone — a template's "Monday the 6th" should mean the same day regardless of where the caller runs.
+// Comparisons and arithmetic route through time.Time (fixed to UTC) so leap years and month lengths stay correct
 type Date struct {
 	Year  int
 	Month time.Month

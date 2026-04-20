@@ -128,6 +128,8 @@ func (r *Repository) ListInRange(ctx context.Context, from, to taskdomain.Date) 
 	return r.queryTasks(ctx, query, from, to)
 }
 
+// UpsertInstance materializes a virtual occurrence idempotently.
+// The ON CONFLICT target matches the partial unique index on (template_id, due_date) — partial because standalone tasks (template_id IS NULL) must not participate in deduplication
 func (r *Repository) UpsertInstance(ctx context.Context, task *taskdomain.Task) (*taskdomain.Task, error) {
 	const query = `INSERT INTO tasks (template_id, title, description, status, due_date, created_at, updated_at)
 					VALUES ($1, $2, $3, $4, $5, $6, $7)

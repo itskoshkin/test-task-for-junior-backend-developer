@@ -19,6 +19,8 @@ const (
 type RecurrenceRule interface {
 	Type() RecurrenceType
 	Validate() error
+	// Occurrences returns rule dates within [from, to].
+	// anchor defines the grid origin for DailyRule ("every N days since anchor"); other rules ignore it
 	Occurrences(anchor, from, to Date) []Date
 }
 
@@ -41,6 +43,7 @@ func (r DailyRule) Occurrences(anchor, from, to Date) []Date {
 		return nil
 	}
 
+	// Skip anchor forward to the first grid point (anchor + k*N) that is >= from, so we don't iterate day-by-day from the template's start_date
 	start := anchor
 	if start.Before(from) {
 		diff := daysInBetween(anchor, from)
@@ -249,6 +252,7 @@ func (LastDayOfMonthRule) Occurrences(_, from, to Date) []Date {
 	}
 }
 
+// daysInMonth uses time.Date normalization: day=0 of month+1 rolls back to the last day of the target month, which automatically handles Feb/leap years
 func daysInMonth(year int, month time.Month) int {
 	return time.Date(year, month+1, 0, 0, 0, 0, 0, time.UTC).Day()
 }

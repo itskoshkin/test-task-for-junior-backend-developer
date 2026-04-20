@@ -55,6 +55,8 @@ type taskDTO struct {
 	UpdatedAt   time.Time         `json:"updated_at,omitempty"`
 }
 
+// A task with ID == 0 is a virtual occurrence synthesized by the service from a template;
+// the flag lets the frontend know it must PATCH via (template_id, due_date) rather than id
 func newTaskDTO(task *taskdomain.Task) taskDTO {
 	return taskDTO{
 		ID:          task.ID,
