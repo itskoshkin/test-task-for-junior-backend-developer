@@ -67,11 +67,11 @@
 
 ### Stage 5. Tests
 
-- [ ] Date generator — table-driven, each type × edge cases
-- [ ] DTO and `RecurrenceRule` validation (negative N, empty arrays, day > 30, end < start)
-- [ ] Use case: verify merge of virtual + materialized instances on a mock repository
-- [ ] Handler: happy path + 400/404 for each endpoint
-- [ ] One e2e test via docker-compose: create template → read window → change occurrence status → read again
+- [x] Date generator — table-driven, each type × edge cases
+- [x] DTO and `RecurrenceRule` validation (negative N, empty arrays, day > 30, end < start)
+- [x] Use case: verify merge of virtual + materialized instances on a mock repository
+- [x] Handler: happy path + 400/404 for each endpoint
+- [x] One e2e test via docker-compose: create template → read window → change occurrence status → read again
 
 ### Stage 6. Documentation
 
