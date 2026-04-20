@@ -37,9 +37,11 @@ func main() {
 	taskRepo := postgresrepo.New(pool)
 	templateRepo := postgresrepo.NewTemplateRepository(pool)
 	taskUseCase := task.NewService(taskRepo, templateRepo)
+	templateUseCase := task.NewTemplateService(templateRepo)
 	taskHandler := httphandlers.NewTaskHandler(taskUseCase)
+	templateHandler := httphandlers.NewTemplateHandler(templateUseCase)
 	docsHandler := swaggerdocs.NewHandler()
-	router := transporthttp.NewRouter(taskHandler, docsHandler)
+	router := transporthttp.NewRouter(taskHandler, templateHandler, docsHandler)
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,

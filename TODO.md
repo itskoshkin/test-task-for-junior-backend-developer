@@ -55,8 +55,8 @@
 
 ### Stage 4. Transport
 
-- [ ] DTO `RecurrenceRuleDTO` with discriminator `type`, custom `UnmarshalJSON`
-- [ ] Resource `/api/v1/task-templates`:
+- [x] DTO `RecurrenceRuleDTO` with discriminator `type`, custom `UnmarshalJSON`
+- [x] Resource `/api/v1/task-templates`:
   - `POST` — create template
   - `GET /{id}` / `PUT /{id}` / `DELETE /{id}`
 - [ ] `/api/v1/tasks`:
