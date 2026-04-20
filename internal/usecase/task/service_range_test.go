@@ -37,6 +37,10 @@ func (r *fakeTaskRepo) ListInRange(_ context.Context, _, _ taskdomain.Date) ([]t
 	return r.listInRange, r.listErr
 }
 
+func (r *fakeTaskRepo) UpdateStatus(_ context.Context, _ int64, _ taskdomain.Status, _ time.Time) (*taskdomain.Task, error) {
+	return nil, nil
+}
+
 func (r *fakeTaskRepo) UpsertInstance(_ context.Context, _ *taskdomain.Task) (*taskdomain.Task, error) {
 	return nil, nil
 }

@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -69,6 +70,25 @@ func (r *Repository) Update(ctx context.Context, task *taskdomain.Task) (*taskdo
 					RETURNING ` + taskColumns
 
 	row := r.pool.QueryRow(ctx, query, task.Title, task.Description, task.Status, task.DueDate, task.UpdatedAt, task.ID)
+	updated, err := scanTask(row)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, taskdomain.ErrNotFound
+		}
+
+		return nil, err
+	}
+
+	return updated, nil
+}
+
+func (r *Repository) UpdateStatus(ctx context.Context, id int64, status taskdomain.Status, updatedAt time.Time) (*taskdomain.Task, error) {
+	const query = `UPDATE tasks
+					SET status = $1, updated_at = $2
+					WHERE id = $3
+					RETURNING ` + taskColumns
+
+	row := r.pool.QueryRow(ctx, query, status, updatedAt, id)
 	updated, err := scanTask(row)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

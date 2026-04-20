@@ -2,6 +2,7 @@ package task
 
 import (
 	"context"
+	"time"
 
 	taskdomain "example.com/taskservice/internal/domain/task"
 )
@@ -13,6 +14,7 @@ type Repository interface {
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context) ([]taskdomain.Task, error)
 	ListInRange(ctx context.Context, from, to taskdomain.Date) ([]taskdomain.Task, error)
+	UpdateStatus(ctx context.Context, id int64, status taskdomain.Status, updatedAt time.Time) (*taskdomain.Task, error)
 	UpsertInstance(ctx context.Context, task *taskdomain.Task) (*taskdomain.Task, error)
 }
 
@@ -32,6 +34,14 @@ type Usecase interface {
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context) ([]taskdomain.Task, error)
 	ListInRange(ctx context.Context, from, to taskdomain.Date) ([]taskdomain.Task, error)
+	UpdateOccurrenceStatus(ctx context.Context, input UpdateOccurrenceStatusInput) (*taskdomain.Task, error)
+}
+
+type UpdateOccurrenceStatusInput struct {
+	ID         int64
+	TemplateID int64
+	DueDate    taskdomain.Date
+	Status     taskdomain.Status
 }
 
 type OptionalDatePatch struct {

@@ -184,6 +184,59 @@ func mergeOccurrences(
 	return out
 }
 
+func (s *Service) UpdateOccurrenceStatus(ctx context.Context, input UpdateOccurrenceStatusInput) (*taskdomain.Task, error) {
+	if !input.Status.Valid() {
+		return nil, fmt.Errorf("%w: invalid status", ErrInvalidInput)
+	}
+
+	if input.ID > 0 {
+		return s.repo.UpdateStatus(ctx, input.ID, input.Status, s.now())
+	}
+
+	if input.TemplateID <= 0 || input.DueDate.IsZero() {
+		return nil, fmt.Errorf("%w: id or (template_id, due_date) is required", ErrInvalidInput)
+	}
+
+	tpl, err := s.templates.GetByID(ctx, input.TemplateID)
+	if err != nil {
+		return nil, err
+	}
+
+	if !occurrenceMatchesTemplate(tpl, input.DueDate) {
+		return nil, fmt.Errorf("%w: %s is not a valid occurrence of template %d", ErrInvalidInput, input.DueDate, tpl.ID)
+	}
+
+	now := s.now()
+	instance := &taskdomain.Task{
+		TemplateID:  &tpl.ID,
+		Title:       tpl.Title,
+		Description: tpl.Description,
+		Status:      input.Status,
+		DueDate:     input.DueDate,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+
+	return s.repo.UpsertInstance(ctx, instance)
+}
+
+func occurrenceMatchesTemplate(tpl *taskdomain.Template, due taskdomain.Date) bool {
+	if due.Before(tpl.StartDate) {
+		return false
+	}
+	if tpl.EndDate != nil && due.After(*tpl.EndDate) {
+		return false
+	}
+
+	for _, d := range tpl.Rule.Occurrences(tpl.StartDate, due, due) {
+		if d.Equal(due) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func virtualOccurrence(tpl taskdomain.Template, due taskdomain.Date) taskdomain.Task {
 	id := tpl.ID
 	return taskdomain.Task{
