@@ -63,7 +63,7 @@
   - `POST` — one-off task (`due_date` required, `template_id = NULL`)
   - `GET /?from=YYYY-MM-DD&to=YYYY-MM-DD` — window instances (materialized + virtual)
   - `PATCH /status` — for both materialized tasks (`id`) and virtual occurrences (`template_id` + `due_date`)
-- [ ] Update `internal/transport/http/docs/openapi.json`
+- [x] Update `internal/transport/http/docs/openapi.json`
 
 ### Stage 5. Tests
 
@@ -83,7 +83,7 @@
   - `end_date` is inclusive and may be `null` (infinite rule)
   - Deleting a template cascades to delete materialized instances
 - [ ] README.md — curl examples for the new flow
-- [ ] Swagger up to date
+- [x] Swagger up to date
 
 ## Open Questions
 

@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Task Service API",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "CRUD API for tasks built with clean architecture."
   },
   "servers": [
@@ -14,13 +14,59 @@
     {
       "name": "Tasks",
       "description": "Operations with tasks"
+    },
+    {
+      "name": "Templates",
+      "description": "Recurring task templates"
     }
   ],
   "paths": {
     "/api/v1/tasks": {
       "get": {
-        "tags": ["Tasks"],
+        "tags": [
+          "Tasks"
+        ],
         "summary": "List tasks",
+        "description": "Without `from`/`to` — lists all materialized tasks. With both `from` and `to` — lists materialized and virtual occurrences in the window. Providing only one of `from`/`to` is a 400. `limit`/`offset` apply to both modes (for the windowed mode, paging is applied after merging virtual and materialized occurrences).",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": "2026-04-18"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": "2026-04-25"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Task list",
@@ -28,21 +74,30 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": { "$ref": "#/components/schemas/Task" }
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
                 }
               }
             }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
           }
         }
       },
       "post": {
-        "tags": ["Tasks"],
-        "summary": "Create task",
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Create standalone task",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/CreateTaskRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/CreateTaskRequest"
+              }
             }
           }
         },
@@ -51,54 +106,32 @@
             "description": "Created task",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Task" }
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
         }
       }
     },
-    "/api/v1/tasks/{id}": {
-      "get": {
-        "tags": ["Tasks"],
-        "summary": "Get task by ID",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "integer", "format": "int64", "minimum": 1 }
-          }
+    "/api/v1/tasks/status": {
+      "patch": {
+        "tags": [
+          "Tasks"
         ],
-        "responses": {
-          "200": {
-            "description": "Task",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Task" }
-              }
-            }
-          },
-          "404": { "$ref": "#/components/responses/NotFound" }
-        }
-      },
-      "put": {
-        "tags": ["Tasks"],
-        "summary": "Update task",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "integer", "format": "int64", "minimum": 1 }
-          }
-        ],
+        "summary": "Change occurrence status",
+        "description": "Either supply `id` for a materialized task, or `template_id` + `due_date` for a virtual occurrence (will be materialized).",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/UpdateTaskRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStatusRequest"
+              }
             }
           }
         },
@@ -107,28 +140,262 @@
             "description": "Updated task",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Task" }
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "404": { "$ref": "#/components/responses/NotFound" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/tasks/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Get task by ID",
+        "responses": {
+          "200": {
+            "description": "Task",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Update task",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTaskRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated task",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
         }
       },
       "delete": {
-        "tags": ["Tasks"],
+        "tags": [
+          "Tasks"
+        ],
         "summary": "Delete task",
+        "responses": {
+          "204": {
+            "description": "Deleted task"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/task-templates": {
+      "get": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "List templates",
         "parameters": [
           {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "integer", "format": "int64", "minimum": 1 }
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
           }
         ],
         "responses": {
-          "204": { "description": "Deleted" },
-          "404": { "$ref": "#/components/responses/NotFound" }
+          "200": {
+            "description": "Template list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Template"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Create template",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemplateMutation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created template",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Template"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/api/v1/task-templates/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Get template by ID",
+        "responses": {
+          "200": {
+            "description": "Template",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Template"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Update template",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemplateMutation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated template",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Template"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Delete template (cascades to materialized tasks)",
+        "responses": {
+          "204": {
+            "description": "Deleted template"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
         }
       }
     }
@@ -139,7 +406,9 @@
         "description": "Bad request",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/Error" }
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
           }
         }
       },
@@ -147,15 +416,83 @@
         "description": "Resource not found",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/Error" }
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
           }
         }
       }
     },
     "schemas": {
+      "Status": {
+        "type": "string",
+        "enum": [
+          "new",
+          "in_progress",
+          "done"
+        ]
+      },
+      "Task": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "status",
+          "due_date",
+          "virtual"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "0 for virtual occurrences",
+            "example": 1
+          },
+          "template_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "example": 7
+          },
+          "title": {
+            "type": "string",
+            "example": "Drink water"
+          },
+          "description": {
+            "type": "string",
+            "example": "2L per day"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status"
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "example": "2026-04-19"
+          },
+          "virtual": {
+            "type": "boolean",
+            "description": "True for occurrences not yet materialized in the DB",
+            "example": false
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-04-19T12:00:00Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-04-19T12:00:00Z"
+          }
+        }
+      },
       "CreateTaskRequest": {
         "type": "object",
-        "required": ["title"],
+        "required": [
+          "title"
+        ],
         "properties": {
           "title": {
             "type": "string",
@@ -163,18 +500,25 @@
           },
           "description": {
             "type": "string",
-            "example": "Collect release notes and check migrations"
+            "example": "Collect release notes"
           },
           "status": {
+            "$ref": "#/components/schemas/Status"
+          },
+          "due_date": {
             "type": "string",
-            "enum": ["new", "in_progress", "done"],
-            "example": "new"
+            "format": "date",
+            "nullable": true,
+            "example": "2026-04-19"
           }
         }
       },
       "UpdateTaskRequest": {
         "type": "object",
-        "required": ["title", "status"],
+        "required": [
+          "title",
+          "status"
+        ],
         "properties": {
           "title": {
             "type": "string",
@@ -182,45 +526,310 @@
           },
           "description": {
             "type": "string",
-            "example": "Collect release notes and check migrations"
+            "example": "Collect release notes"
           },
           "status": {
+            "$ref": "#/components/schemas/Status"
+          },
+          "due_date": {
             "type": "string",
-            "enum": ["new", "in_progress", "done"],
-            "example": "in_progress"
+            "format": "date",
+            "nullable": true,
+            "description": "Omit to keep the current value, send null to clear it, or send a date string to replace it.",
+            "example": "2026-04-19"
           }
         }
       },
-      "Task": {
+      "UpdateStatusRequest": {
         "type": "object",
+        "required": [
+          "status"
+        ],
+        "description": "Provide either `id` (materialized task) or `template_id` + `due_date` (virtual occurrence).",
         "properties": {
-          "id": { "type": "integer", "format": "int64", "example": 1 },
-          "title": { "type": "string", "example": "Prepare release" },
-          "description": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "example": 42
+          },
+          "template_id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "example": 7
+          },
+          "due_date": {
             "type": "string",
-            "example": "Collect release notes and check migrations"
+            "format": "date",
+            "example": "2026-04-19"
           },
           "status": {
+            "$ref": "#/components/schemas/Status"
+          }
+        }
+      },
+      "Template": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "rule",
+          "start_date"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 7
+          },
+          "title": {
             "type": "string",
-            "enum": ["new", "in_progress", "done"],
-            "example": "new"
+            "example": "Drink water"
+          },
+          "description": {
+            "type": "string",
+            "example": "2L per day"
+          },
+          "rule": {
+            "$ref": "#/components/schemas/Rule"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-04-01"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "example": null
           },
           "created_at": {
             "type": "string",
-            "format": "date-time",
-            "example": "2026-03-24T00:00:00Z"
+            "format": "date-time"
           },
           "updated_at": {
             "type": "string",
-            "format": "date-time",
-            "example": "2026-03-24T00:00:00Z"
+            "format": "date-time"
+          }
+        }
+      },
+      "TemplateMutation": {
+        "type": "object",
+        "required": [
+          "title",
+          "rule",
+          "start_date"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "rule": {
+            "$ref": "#/components/schemas/Rule"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          }
+        }
+      },
+      "Rule": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "discriminator": {
+          "propertyName": "type",
+          "mapping": {
+            "daily": "#/components/schemas/DailyRule",
+            "monthly": "#/components/schemas/MonthlyRule",
+            "specific_dates": "#/components/schemas/SpecificDatesRule",
+            "monthday_parity": "#/components/schemas/MonthdayParityRule",
+            "last_day_of_month": "#/components/schemas/LastDayOfMonthRule"
+          }
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/DailyRule"
+          },
+          {
+            "$ref": "#/components/schemas/MonthlyRule"
+          },
+          {
+            "$ref": "#/components/schemas/SpecificDatesRule"
+          },
+          {
+            "$ref": "#/components/schemas/MonthdayParityRule"
+          },
+          {
+            "$ref": "#/components/schemas/LastDayOfMonthRule"
+          }
+        ]
+      },
+      "DailyRule": {
+        "type": "object",
+        "required": [
+          "type",
+          "params"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "daily"
+            ]
+          },
+          "params": {
+            "type": "object",
+            "required": [
+              "every_n"
+            ],
+            "properties": {
+              "every_n": {
+                "type": "integer",
+                "minimum": 1,
+                "example": 1
+              }
+            }
+          }
+        }
+      },
+      "MonthlyRule": {
+        "type": "object",
+        "required": [
+          "type",
+          "params"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "monthly"
+            ]
+          },
+          "params": {
+            "type": "object",
+            "required": [
+              "days_of_month"
+            ],
+            "properties": {
+              "days_of_month": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 30
+                },
+                "example": [
+                  1,
+                  15
+                ]
+              }
+            }
+          }
+        }
+      },
+      "SpecificDatesRule": {
+        "type": "object",
+        "required": [
+          "type",
+          "params"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "specific_dates"
+            ]
+          },
+          "params": {
+            "type": "object",
+            "required": [
+              "dates"
+            ],
+            "properties": {
+              "dates": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "example": [
+                  "2026-04-01",
+                  "2026-04-15"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "MonthdayParityRule": {
+        "type": "object",
+        "required": [
+          "type",
+          "params"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "monthday_parity"
+            ]
+          },
+          "params": {
+            "type": "object",
+            "required": [
+              "parity"
+            ],
+            "properties": {
+              "parity": {
+                "type": "string",
+                "enum": [
+                  "even",
+                  "odd"
+                ],
+                "example": "odd"
+              }
+            }
+          }
+        }
+      },
+      "LastDayOfMonthRule": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "last_day_of_month"
+            ]
+          },
+          "params": {
+            "type": "object",
+            "description": "Empty object",
+            "example": {}
           }
         }
       },
       "Error": {
         "type": "object",
         "properties": {
-          "error": { "type": "string", "example": "task not found" }
+          "error": {
+            "type": "string",
+            "example": "task not found"
+          }
         }
       }
     }
