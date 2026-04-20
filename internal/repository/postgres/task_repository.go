@@ -116,10 +116,10 @@ func (r *Repository) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (r *Repository) List(ctx context.Context) ([]taskdomain.Task, error) {
-	const query = `SELECT ` + taskColumns + ` FROM tasks ORDER BY id DESC`
+func (r *Repository) List(ctx context.Context, limit, offset int) ([]taskdomain.Task, error) {
+	const query = `SELECT ` + taskColumns + ` FROM tasks ORDER BY id DESC LIMIT $1 OFFSET $2`
 
-	return r.queryTasks(ctx, query)
+	return r.queryTasks(ctx, query, limit, offset)
 }
 
 func (r *Repository) ListInRange(ctx context.Context, from, to taskdomain.Date) ([]taskdomain.Task, error) {

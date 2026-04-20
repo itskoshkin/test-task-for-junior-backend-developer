@@ -13,6 +13,9 @@ import (
 type fakeTaskRepo struct {
 	listInRange []taskdomain.Task
 	listErr     error
+	listLimit   int
+	listOffset  int
+	listOut     []taskdomain.Task
 }
 
 func (r *fakeTaskRepo) Create(_ context.Context, _ *taskdomain.Task) (*taskdomain.Task, error) {
@@ -29,8 +32,10 @@ func (r *fakeTaskRepo) Update(_ context.Context, _ *taskdomain.Task) (*taskdomai
 
 func (r *fakeTaskRepo) Delete(_ context.Context, _ int64) error { return nil }
 
-func (r *fakeTaskRepo) List(_ context.Context) ([]taskdomain.Task, error) {
-	return nil, nil
+func (r *fakeTaskRepo) List(_ context.Context, limit, offset int) ([]taskdomain.Task, error) {
+	r.listLimit = limit
+	r.listOffset = offset
+	return r.listOut, nil
 }
 
 func (r *fakeTaskRepo) ListInRange(_ context.Context, _, _ taskdomain.Date) ([]taskdomain.Task, error) {
@@ -89,7 +94,7 @@ func TestService_ListInRange_InvalidInput(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := svc.ListInRange(context.Background(), tc.from, tc.to)
+			_, err := svc.ListInRange(context.Background(), tc.from, tc.to, ListTasksInput{})
 			if !errors.Is(err, ErrInvalidInput) {
 				t.Fatalf("expected ErrInvalidInput, got %v", err)
 			}
@@ -110,7 +115,7 @@ func TestService_ListInRange_PureVirtual(t *testing.T) {
 		templates: &fakeTemplateRepoForRange{active: []taskdomain.Template{tpl}},
 	}
 
-	got, err := svc.ListInRange(context.Background(), dd(2026, time.April, 18), dd(2026, time.April, 20))
+	got, err := svc.ListInRange(context.Background(), dd(2026, time.April, 18), dd(2026, time.April, 20), ListTasksInput{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -156,7 +161,7 @@ func TestService_ListInRange_MaterializedWinsOverVirtual(t *testing.T) {
 		templates: &fakeTemplateRepoForRange{active: []taskdomain.Template{tpl}},
 	}
 
-	got, err := svc.ListInRange(context.Background(), dd(2026, time.April, 18), dd(2026, time.April, 20))
+	got, err := svc.ListInRange(context.Background(), dd(2026, time.April, 18), dd(2026, time.April, 20), ListTasksInput{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -204,7 +209,7 @@ func TestService_ListInRange_StandaloneTaskPassesThrough(t *testing.T) {
 		templates: &fakeTemplateRepoForRange{},
 	}
 
-	got, err := svc.ListInRange(context.Background(), dd(2026, time.April, 18), dd(2026, time.April, 20))
+	got, err := svc.ListInRange(context.Background(), dd(2026, time.April, 18), dd(2026, time.April, 20), ListTasksInput{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -226,7 +231,7 @@ func TestService_ListInRange_TemplateWindowClipping(t *testing.T) {
 		templates: &fakeTemplateRepoForRange{active: []taskdomain.Template{tpl}},
 	}
 
-	got, err := svc.ListInRange(context.Background(), dd(2026, time.April, 18), dd(2026, time.April, 25))
+	got, err := svc.ListInRange(context.Background(), dd(2026, time.April, 18), dd(2026, time.April, 25), ListTasksInput{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -249,7 +254,7 @@ func TestService_ListInRange_SortedByDueDate(t *testing.T) {
 		templates: &fakeTemplateRepoForRange{active: []taskdomain.Template{tplA, tplB}},
 	}
 
-	got, err := svc.ListInRange(context.Background(), dd(2026, time.April, 18), dd(2026, time.April, 22))
+	got, err := svc.ListInRange(context.Background(), dd(2026, time.April, 18), dd(2026, time.April, 22), ListTasksInput{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -12,10 +12,10 @@ import (
 )
 
 type TemplateHandler struct {
-	useCase taskusecase.TemplateUsecase
+	useCase taskusecase.TemplateUseCase
 }
 
-func NewTemplateHandler(useCase taskusecase.TemplateUsecase) *TemplateHandler {
+func NewTemplateHandler(useCase taskusecase.TemplateUseCase) *TemplateHandler {
 	return &TemplateHandler{useCase: useCase}
 }
 

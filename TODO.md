@@ -88,5 +88,5 @@
 ## Open Questions
 
 - [ ] `assignee_id` for a template — current `Task` does not have it. Should it be added as part of this assignment? Probably not: the task is about recurrence, not assignment.
-- [ ] List pagination — keep the `from/to` window without `limit/offset`. If the window is too large, cut it off server-side (`maxspan` 366 days).
+- [x] List pagination — keep the `from/to` window without `limit/offset`. If the window is too large, cut it off server-side (`maxspan` 366 days).
 - [ ] “Edit the whole series / only this occurrence” — in v1, do the basic version: editing the template affects future virtual occurrences; editing a materialized instance affects only that one.

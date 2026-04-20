@@ -9,11 +9,6 @@ import (
 	taskdomain "example.com/taskservice/internal/domain/task"
 )
 
-const (
-	defaultTemplateListLimit = 20
-	maxTemplateListLimit     = 100
-)
-
 type TemplateService struct {
 	repo TemplateRepository
 	now  func() time.Time
@@ -86,7 +81,7 @@ func (s *TemplateService) Delete(ctx context.Context, id int64) error {
 }
 
 func (s *TemplateService) List(ctx context.Context, page ListTemplatesInput) ([]taskdomain.Template, error) {
-	limit, offset, err := normalizePagination(page)
+	limit, offset, err := page.normalize()
 	if err != nil {
 		return nil, err
 	}
@@ -142,22 +137,3 @@ func validateRuleAndDates(rule taskdomain.RecurrenceRule, start taskdomain.Date,
 	return nil
 }
 
-func normalizePagination(page ListTemplatesInput) (limit, offset int, err error) {
-	limit = page.Limit
-	offset = page.Offset
-
-	if offset < 0 {
-		return 0, 0, fmt.Errorf("%w: offset must be >= 0", ErrInvalidInput)
-	}
-	if limit < 0 {
-		return 0, 0, fmt.Errorf("%w: limit must be >= 0", ErrInvalidInput)
-	}
-	if limit == 0 {
-		limit = defaultTemplateListLimit
-	}
-	if limit > maxTemplateListLimit {
-		limit = maxTemplateListLimit
-	}
-
-	return limit, offset, nil
-}

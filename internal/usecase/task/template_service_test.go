@@ -203,9 +203,9 @@ func TestTemplateService_List_Pagination(t *testing.T) {
 		wantOffset int
 		wantErr    bool
 	}{
-		{name: "defaults", in: ListTemplatesInput{}, wantLimit: defaultTemplateListLimit, wantOffset: 0},
+		{name: "defaults", in: ListTemplatesInput{}, wantLimit: defaultListLimit, wantOffset: 0},
 		{name: "explicit", in: ListTemplatesInput{Limit: 50, Offset: 100}, wantLimit: 50, wantOffset: 100},
-		{name: "clamped to max", in: ListTemplatesInput{Limit: 9999}, wantLimit: maxTemplateListLimit},
+		{name: "clamped to max", in: ListTemplatesInput{Limit: 9999}, wantLimit: maxListLimit},
 		{name: "negative offset", in: ListTemplatesInput{Offset: -1}, wantErr: true},
 		{name: "negative limit", in: ListTemplatesInput{Limit: -1}, wantErr: true},
 	}

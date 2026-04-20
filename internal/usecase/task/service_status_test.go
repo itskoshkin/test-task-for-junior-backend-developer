@@ -33,7 +33,7 @@ func (r *fakeRepoForStatus) Update(_ context.Context, _ *taskdomain.Task) (*task
 
 func (r *fakeRepoForStatus) Delete(_ context.Context, _ int64) error { return nil }
 
-func (r *fakeRepoForStatus) List(_ context.Context) ([]taskdomain.Task, error) {
+func (r *fakeRepoForStatus) List(_ context.Context, _, _ int) ([]taskdomain.Task, error) {
 	return nil, nil
 }
 

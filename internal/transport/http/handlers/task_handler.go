@@ -13,10 +13,10 @@ import (
 )
 
 type TaskHandler struct {
-	useCase taskusecase.Usecase
+	useCase taskusecase.UseCase
 }
 
-func NewTaskHandler(useCase taskusecase.Usecase) *TaskHandler {
+func NewTaskHandler(useCase taskusecase.UseCase) *TaskHandler {
 	return &TaskHandler{useCase: useCase}
 }
 
@@ -106,14 +106,18 @@ func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	fromStr, toStr := q.Get("from"), q.Get("to")
 
-	var (
-		tasks []taskdomain.Task
-		err   error
-	)
+	limit, offset, err := parsePagination(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	page := taskusecase.ListTasksInput{Limit: limit, Offset: offset}
+
+	var tasks []taskdomain.Task
 
 	switch {
 	case fromStr == "" && toStr == "":
-		tasks, err = h.useCase.List(r.Context())
+		tasks, err = h.useCase.List(r.Context(), page)
 	case fromStr != "" && toStr != "":
 		from, parseErr := taskdomain.ParseDate(fromStr)
 		if parseErr != nil {
@@ -125,7 +129,7 @@ func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusBadRequest, errors.New("invalid to"))
 			return
 		}
-		tasks, err = h.useCase.ListInRange(r.Context(), from, to)
+		tasks, err = h.useCase.ListInRange(r.Context(), from, to, page)
 	default:
 		writeError(w, http.StatusBadRequest, errors.New("from and to must be provided together"))
 		return

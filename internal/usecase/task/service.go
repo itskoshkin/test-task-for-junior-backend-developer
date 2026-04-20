@@ -107,16 +107,26 @@ func (s *Service) Delete(ctx context.Context, id int64) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *Service) List(ctx context.Context) ([]taskdomain.Task, error) {
-	return s.repo.List(ctx)
+func (s *Service) List(ctx context.Context, page ListTasksInput) ([]taskdomain.Task, error) {
+	limit, offset, err := page.normalize()
+	if err != nil {
+		return nil, err
+	}
+
+	return s.repo.List(ctx, limit, offset)
 }
 
-func (s *Service) ListInRange(ctx context.Context, from, to taskdomain.Date) ([]taskdomain.Task, error) {
+func (s *Service) ListInRange(ctx context.Context, from, to taskdomain.Date, page ListTasksInput) ([]taskdomain.Task, error) {
 	if from.IsZero() || to.IsZero() {
 		return nil, fmt.Errorf("%w: from and to are required", ErrInvalidInput)
 	}
 	if from.After(to) {
 		return nil, fmt.Errorf("%w: from must be <= to", ErrInvalidInput)
+	}
+
+	limit, offset, err := page.normalize()
+	if err != nil {
+		return nil, err
 	}
 
 	materialized, err := s.repo.ListInRange(ctx, from, to)
@@ -129,7 +139,19 @@ func (s *Service) ListInRange(ctx context.Context, from, to taskdomain.Date) ([]
 		return nil, err
 	}
 
-	return mergeOccurrences(materialized, templates, from, to), nil
+	merged := mergeOccurrences(materialized, templates, from, to)
+	return pageSlice(merged, limit, offset), nil
+}
+
+func pageSlice(tasks []taskdomain.Task, limit, offset int) []taskdomain.Task {
+	if offset >= len(tasks) {
+		return []taskdomain.Task{}
+	}
+	end := offset + limit
+	if end > len(tasks) {
+		end = len(tasks)
+	}
+	return tasks[offset:end]
 }
 
 type occurrenceKey struct {

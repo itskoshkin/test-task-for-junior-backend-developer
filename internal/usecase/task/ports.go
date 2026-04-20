@@ -12,7 +12,7 @@ type Repository interface {
 	GetByID(ctx context.Context, id int64) (*taskdomain.Task, error)
 	Update(ctx context.Context, task *taskdomain.Task) (*taskdomain.Task, error)
 	Delete(ctx context.Context, id int64) error
-	List(ctx context.Context) ([]taskdomain.Task, error)
+	List(ctx context.Context, limit, offset int) ([]taskdomain.Task, error)
 	ListInRange(ctx context.Context, from, to taskdomain.Date) ([]taskdomain.Task, error)
 	UpdateStatus(ctx context.Context, id int64, status taskdomain.Status, updatedAt time.Time) (*taskdomain.Task, error)
 	UpsertInstance(ctx context.Context, task *taskdomain.Task) (*taskdomain.Task, error)
@@ -27,15 +27,17 @@ type TemplateRepository interface {
 	ListActiveInRange(ctx context.Context, from, to taskdomain.Date) ([]taskdomain.Template, error)
 }
 
-type Usecase interface {
+type UseCase interface {
 	Create(ctx context.Context, input CreateInput) (*taskdomain.Task, error)
 	GetByID(ctx context.Context, id int64) (*taskdomain.Task, error)
 	Update(ctx context.Context, id int64, input UpdateInput) (*taskdomain.Task, error)
 	Delete(ctx context.Context, id int64) error
-	List(ctx context.Context) ([]taskdomain.Task, error)
-	ListInRange(ctx context.Context, from, to taskdomain.Date) ([]taskdomain.Task, error)
+	List(ctx context.Context, page ListTasksInput) ([]taskdomain.Task, error)
+	ListInRange(ctx context.Context, from, to taskdomain.Date, page ListTasksInput) ([]taskdomain.Task, error)
 	UpdateOccurrenceStatus(ctx context.Context, input UpdateOccurrenceStatusInput) (*taskdomain.Task, error)
 }
+
+type ListTasksInput = Pagination
 
 type UpdateOccurrenceStatusInput struct {
 	ID         int64
@@ -63,7 +65,7 @@ type UpdateInput struct {
 	DueDate     OptionalDatePatch
 }
 
-type TemplateUsecase interface {
+type TemplateUseCase interface {
 	Create(ctx context.Context, input CreateTemplateInput) (*taskdomain.Template, error)
 	GetByID(ctx context.Context, id int64) (*taskdomain.Template, error)
 	Update(ctx context.Context, id int64, input UpdateTemplateInput) (*taskdomain.Template, error)
@@ -87,7 +89,4 @@ type UpdateTemplateInput struct {
 	EndDate     *taskdomain.Date
 }
 
-type ListTemplatesInput struct {
-	Limit  int
-	Offset int
-}
+type ListTemplatesInput = Pagination
